@@ -44,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
         mainLayout = (RelativeLayout) findViewById(R.id.main);
         ImageView fighter = findViewById(R.id.fighter);
 
-        RelativeLayout.LayoutParams initialPosition = (RelativeLayout.LayoutParams) fighter.getLayoutParams();
-        /*initialPosition.leftMargin = width / 2 - initialPosition.width / 2;
+        /*RelativeLayout.LayoutParams initialPosition = (RelativeLayout.LayoutParams) fighter.getLayoutParams();
+        initialPosition.leftMargin = width / 2 - initialPosition.width / 2;
         initialPosition.topMargin = height - initialPosition.height / 2;
         Log.i(TAG, "ERROR" + initialPosition.leftMargin + " " + initialPosition.topMargin);
         fighter.setLayoutParams(initialPosition);*/
