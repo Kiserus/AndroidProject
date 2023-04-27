@@ -30,7 +30,7 @@ import android.widget.RelativeLayout;
 
 public class MainActivity extends AppCompatActivity {
 
-    WindowMetrics windowMetrics = new WindowMetrics().g;
+    boolean planeIsAlive = true;
 
     private static final String TAG = "Main";
 
@@ -45,10 +45,10 @@ public class MainActivity extends AppCompatActivity {
         ImageView fighter = findViewById(R.id.fighter);
 
         RelativeLayout.LayoutParams initialPosition = (RelativeLayout.LayoutParams) fighter.getLayoutParams();
-        initialPosition.leftMargin = width / 2 - initialPosition.width / 2;
+        /*initialPosition.leftMargin = width / 2 - initialPosition.width / 2;
         initialPosition.topMargin = height - initialPosition.height / 2;
         Log.i(TAG, "ERROR" + initialPosition.leftMargin + " " + initialPosition.topMargin);
-        fighter.setLayoutParams(initialPosition);
+        fighter.setLayoutParams(initialPosition);*/
         fighter.setOnTouchListener(onTouchListener());
     }
     // Внезапный выход из игры
