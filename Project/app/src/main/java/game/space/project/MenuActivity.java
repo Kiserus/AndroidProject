@@ -33,10 +33,12 @@ public class MenuActivity extends AppCompatActivity {
             public boolean onTouch(View view, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        goToMainActivity.setImageResource(R.drawable.buttonplay2);
+                        goToMainActivity.setImageResource(R.drawable.button_play_pressed);
+                        goToMainActivity.animate().scaleX(1.1f).scaleY(1.1f).setDuration(0);
                         break;
                     case MotionEvent.ACTION_UP:
-                        goToMainActivity.setImageResource(R.drawable.buttonplay1);
+                        goToMainActivity.setImageResource(R.drawable.button_play);
+                        goToMainActivity.animate().scaleX(goToMainActivity.getScaleX() - 0.1f).scaleY(goToMainActivity.getScaleX() - 0.1f).setDuration(0);
                         Intent intent = new Intent(MenuActivity.this, MainActivity.class);
                         startActivity(intent);
                         break;

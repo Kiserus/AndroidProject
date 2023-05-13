@@ -1,6 +1,7 @@
 package game.space.project;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
@@ -10,6 +11,7 @@ import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -20,6 +22,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
@@ -27,12 +30,16 @@ import android.view.WindowMetrics;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+class Asteroid {
+    int x;
+    int y;
+    int speed;
+    int radius;
+}
 
 public class MainActivity extends AppCompatActivity {
 
     boolean planeIsAlive = true;
-
-    private static final String TAG = "Main";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,11 +51,21 @@ public class MainActivity extends AppCompatActivity {
         mainLayout = (RelativeLayout) findViewById(R.id.main);
         ImageView fighter = findViewById(R.id.fighter);
 
-        /*RelativeLayout.LayoutParams initialPosition = (RelativeLayout.LayoutParams) fighter.getLayoutParams();
-        initialPosition.leftMargin = width / 2 - initialPosition.width / 2;
-        initialPosition.topMargin = height - initialPosition.height / 2;
-        Log.i(TAG, "ERROR" + initialPosition.leftMargin + " " + initialPosition.topMargin);
-        fighter.setLayoutParams(initialPosition);*/
+        // Устанавливаем начальное положение
+        fighter.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+                getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+                int dpHeight = displayMetrics.heightPixels;
+                int dpWidth = displayMetrics.widthPixels;
+                RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                initialPosition.leftMargin = (dpWidth / 2 - fighter.getWidth() / 2);
+                initialPosition.topMargin = (int) (dpHeight * 0.9);
+                fighter.setLayoutParams(initialPosition);
+                fighter.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            }
+        });
         fighter.setOnTouchListener(onTouchListener());
     }
     // Внезапный выход из игры
@@ -79,10 +96,17 @@ public class MainActivity extends AppCompatActivity {
                         yDelta = y - lParams.topMargin;
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
-                        layoutParams.leftMargin = x - xDelta;
-                        layoutParams.topMargin = y - yDelta;
-                        view.setLayoutParams(layoutParams);
+                        if (x - xDelta + view.getWidth() <= mainLayout.getWidth() // исключаем случай выхода за границы экрана изображения
+                            && y - yDelta + view.getHeight() <= mainLayout.getHeight()
+                            && x - xDelta >= 0
+                            && y - yDelta >= 0) {
+                            RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
+                            layoutParams.leftMargin = x - xDelta;
+                            layoutParams.topMargin = y - yDelta;
+                            layoutParams.rightMargin = 0;
+                            layoutParams.bottomMargin = 0;
+                            view.setLayoutParams(layoutParams);
+                        }
                         break;
                 }
                 mainLayout.invalidate();

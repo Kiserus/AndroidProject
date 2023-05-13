@@ -12,6 +12,6 @@
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:layout_centerInParent="true"
-        app:srcCompat="@drawable/buttonplay1"/>
+        app:srcCompat="@drawable/button_play" />
 
 </RelativeLayout>
