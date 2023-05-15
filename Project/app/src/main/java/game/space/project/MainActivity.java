@@ -37,6 +37,16 @@ class Asteroid {
     int radius;
 }
 
+class GamaView {
+    Thread game = new Thread() {
+        @Override
+        public void run() {
+            super.run();
+        }
+    };
+
+}
+
 public class MainActivity extends AppCompatActivity {
 
     boolean planeIsAlive = true;
@@ -61,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
                 int dpWidth = displayMetrics.widthPixels;
                 RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 initialPosition.leftMargin = (dpWidth / 2 - fighter.getWidth() / 2);
-                initialPosition.topMargin = (int) (dpHeight * 0.9);
+                initialPosition.topMargin = (int)(dpHeight * 0.9);
                 fighter.setLayoutParams(initialPosition);
                 fighter.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
