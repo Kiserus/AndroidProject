@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -35,9 +36,15 @@ class Asteroid {
     int y;
     int speed;
     int radius;
+    Bitmap bitmap;
+    void create(Context context) {
+        Bitmap buffer = BitmapFactory.decodeResource(context.getResources(), R.drawable.asteroid_common);
+        bitmap = Bitmap.createScaledBitmap(buffer, (int)(size * GameView.unitW), (int)(size * GameView.unitH), false);
+        buffer.recycle();
+    }
 }
 
-class GamaView {
+class GameView {
     Thread game = new Thread() {
         @Override
         public void run() {
@@ -53,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Bitmap bit = BitmapFactory.decodeResource(getResources())
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Window w = getWindow();
