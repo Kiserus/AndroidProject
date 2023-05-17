@@ -3,6 +3,7 @@ package game.space.project;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -31,6 +32,11 @@ import android.view.WindowMetrics;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Random;
+
 class Asteroid {
     int x;
     int y;
@@ -38,21 +44,38 @@ class Asteroid {
     int radius;
     Bitmap bitmap;
     void create(Context context) {
+        Random random = new Random();
         Bitmap buffer = BitmapFactory.decodeResource(context.getResources(), R.drawable.asteroid_common);
-        bitmap = Bitmap.createScaledBitmap(buffer, (int)(size * GameView.unitW), (int)(size * GameView.unitH), false);
+        bitmap = Bitmap.createScaledBitmap(buffer, (int)( * GameView.getWidth), (int)(size * GameView.unitH), false);
         buffer.recycle();
     }
 }
 
 class GameView {
+    Context context;
+    DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+    int width = displayMetrics.widthPixels;
+    int height = displayMetrics.heightPixels;
+
+    GameView(Context current) {
+        context = current;
+    }
+
+    ArrayList <Asteroid> asteroids = new ArrayList<Asteroid>();
+
     Thread game = new Thread() {
         @Override
         public void run() {
+
             super.run();
         }
     };
 
+    int getWidth() {
+        return width;
+    }
 }
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,33 +83,22 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Bitmap bit = BitmapFactory.decodeResource(getResources())
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Window w = getWindow();
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         mainLayout = (RelativeLayout) findViewById(R.id.main);
+        GameView game = new GameView(this);
         ImageView fighter = findViewById(R.id.fighter);
-
-        // Устанавливаем начальное положение
-        fighter.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-                getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-                int dpHeight = displayMetrics.heightPixels;
-                int dpWidth = displayMetrics.widthPixels;
-                RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                initialPosition.leftMargin = (dpWidth / 2 - fighter.getWidth() / 2);
-                initialPosition.topMargin = (int)(dpHeight * 0.9);
-                fighter.setLayoutParams(initialPosition);
-                fighter.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-            }
-        });
+        //  устанавливаем начальное положение
+        RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        initialPosition.leftMargin = (game.width / 2 - fighter.getWidth() / 2);
+        initialPosition.topMargin = (int)(game.height * 0.9);
+        fighter.setLayoutParams(initialPosition);
         fighter.setOnTouchListener(onTouchListener());
     }
-    // Внезапный выход из игры
+    //  Внезапный выход из игры
     @Override
     protected void onDestroy() {
         super.onDestroy();
