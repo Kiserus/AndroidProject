@@ -38,16 +38,25 @@ import java.util.LinkedList;
 import java.util.Random;
 
 class Asteroid {
+    Context context;
+    void setContext(Context current) {
+        this.context = current;
+    }
+    Random random = new Random();
+    int radius = random.nextInt(10) + 5;
     int x;
     int y;
     int speed;
-    int radius;
     Bitmap bitmap;
-    void create(Context context) {
-        Random random = new Random();
+    void setSize() {
         Bitmap buffer = BitmapFactory.decodeResource(context.getResources(), R.drawable.asteroid_common);
-        bitmap = Bitmap.createScaledBitmap(buffer, (int)( * GameView.getWidth), (int)(size * GameView.unitH), false);
+        bitmap = Bitmap.createScaledBitmap(buffer, (int)(radius), (int)(radius), false);
         buffer.recycle();
+    }
+
+    void create(Asteroid asteroid) {
+        ImageView imageView = new ImageView(context);
+
     }
 }
 
@@ -58,7 +67,7 @@ class GameView {
     int height = displayMetrics.heightPixels;
 
     GameView(Context current) {
-        context = current;
+        this.context = current;
     }
 
     ArrayList <Asteroid> asteroids = new ArrayList<Asteroid>();
@@ -66,11 +75,17 @@ class GameView {
     Thread game = new Thread() {
         @Override
         public void run() {
-
+            try {
+                Asteroid a = new Asteroid();
+                a.setSize(context);
+                asteroids.add(a);
+                sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             super.run();
         }
     };
-
     int getWidth() {
         return width;
     }
