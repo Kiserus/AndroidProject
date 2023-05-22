@@ -37,57 +37,80 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Random;
 
-class Asteroid {
-    Context context;
-    void setContext(Context current) {
-        this.context = current;
-    }
-    Random random = new Random();
-    int radius = random.nextInt(10) + 5;
-    int x;
-    int y;
-    int speed;
-    Bitmap bitmap;
-    void setSize() {
-        Bitmap buffer = BitmapFactory.decodeResource(context.getResources(), R.drawable.asteroid_common);
-        bitmap = Bitmap.createScaledBitmap(buffer, (int)(radius), (int)(radius), false);
-        buffer.recycle();
-    }
-
-    void create(Asteroid asteroid) {
-        ImageView imageView = new ImageView(context);
-
-    }
-}
-
 class GameView {
+    Activity activity;
     Context context;
-    DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-    int width = displayMetrics.widthPixels;
-    int height = displayMetrics.heightPixels;
+    DisplayMetrics displayMetrics;
+    int width;
+    int height;
+    Thread gameThread;
 
-    GameView(Context current) {
+    GameView(Context current, Activity activity) {
         this.context = current;
+        this.activity = activity;
     }
 
-    ArrayList <Asteroid> asteroids = new ArrayList<Asteroid>();
+    void setDisplayMetrics(Context context) {
+        displayMetrics = context.getResources().getDisplayMetrics();
+        width = displayMetrics.widthPixels;
+        height = displayMetrics.heightPixels;
+    }
 
-    Thread game = new Thread() {
-        @Override
-        public void run() {
-            try {
-                Asteroid a = new Asteroid();
-                a.setSize(context);
-                asteroids.add(a);
-                sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            super.run();
+    ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
+
+    class Asteroid {
+        int radius = 100;
+        int x = 200;
+        int y = 200;
+        int speed = 2; // юзаем класс вместо ImageView из-за скорости (у каждого индивидуальная)
+        ImageView imageView;
+        RelativeLayout relativeLayout;
+        RelativeLayout.LayoutParams relativeLayoutParams;
+
+        void setParam() { // add
+            /*Random random = new Random();
+            this.radius = random.nextInt(5) + 5;
+            this.x = random.nextInt(width);
+            this.y = radius;
+            this.speed = random.nextInt(3) + 1;*/
+
+            imageView = new ImageView(context);
+            imageView.setImageResource(R.drawable.asteroid_common);
+            relativeLayout = (RelativeLayout) activity.findViewById(R.id.main);
+            relativeLayoutParams = new RelativeLayout.LayoutParams(radius, radius);
+
+            relativeLayoutParams.leftMargin = this.x;
+            relativeLayoutParams.topMargin = this.y;
+            relativeLayoutParams.width = this.radius;
+            relativeLayoutParams.height = this.radius;
+
+            imageView.setLayoutParams(relativeLayoutParams); // где-то тут ошибка
+            relativeLayout.addView(imageView);
         }
-    };
-    int getWidth() {
-        return width;
+    }
+
+    void update() {
+        for (Asteroid asteroid : asteroids) {
+            asteroid.imageView.setY(asteroid.imageView.getY() + asteroid.speed);
+        }
+    }
+
+    void setGameThread() {
+        gameThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Asteroid a = new Asteroid();
+                    a.setParam();
+                    //asteroids.add(a);
+                    //update();
+                    sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                super.run();
+            }
+        };
     }
 }
 
@@ -95,6 +118,7 @@ class GameView {
 public class MainActivity extends AppCompatActivity {
 
     boolean planeIsAlive = true;
+    private ViewGroup mainLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,14 +128,16 @@ public class MainActivity extends AppCompatActivity {
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         mainLayout = (RelativeLayout) findViewById(R.id.main);
-        GameView game = new GameView(this);
+        GameView game = new GameView(this, this);
         ImageView fighter = findViewById(R.id.fighter);
         //  устанавливаем начальное положение
         RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        initialPosition.leftMargin = (game.width / 2 - fighter.getWidth() / 2);
-        initialPosition.topMargin = (int)(game.height * 0.9);
+        initialPosition.leftMargin = (mainLayout.getWidth() / 2 - fighter.getWidth() / 2);
+        initialPosition.topMargin = (int)(mainLayout.getHeight() * 0.9);
         fighter.setLayoutParams(initialPosition);
         fighter.setOnTouchListener(onTouchListener());
+
+        
     }
     //  Внезапный выход из игры
     @Override
@@ -121,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //  Управление
-    private ViewGroup mainLayout;
+
     private int xDelta;
     private int yDelta;
 
