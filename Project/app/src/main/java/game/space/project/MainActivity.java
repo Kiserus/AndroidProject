@@ -59,20 +59,24 @@ class GameView {
     ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
 
     class Asteroid {
-        int radius = 100;
-        int x = 200;
-        int y = 200;
-        int speed = 2; // юзаем класс вместо ImageView из-за скорости (у каждого индивидуальная)
+        Asteroid asteroid;
+        int radius;
+        int x;
+        int y;
+        int speed; // юзаем класс вместо ImageView из-за скорости (у каждого индивидуальная)
+        int time;
         ImageView imageView;
         RelativeLayout relativeLayout;
         RelativeLayout.LayoutParams relativeLayoutParams;
+        Thread moving;
 
-        void setParam() { // add
-            /*Random random = new Random();
-            this.radius = random.nextInt(5) + 5;
+        Asteroid() { // add
+            Random random = new Random();
+            this.radius = random.nextInt(1000) + 100;
             this.x = random.nextInt(width);
             this.y = radius;
-            this.speed = random.nextInt(3) + 1;*/
+            this.speed = 1;
+            this.time = 10;
 
             imageView = new ImageView(context);
             imageView.setImageResource(R.drawable.asteroid_common);
@@ -87,23 +91,37 @@ class GameView {
             imageView.setLayoutParams(relativeLayoutParams); // где-то тут ошибка
             relativeLayout.addView(imageView);
         }
-    }
 
-    void update() {
-        for (Asteroid asteroid : asteroids) {
-            asteroid.imageView.setY(asteroid.imageView.getY() + asteroid.speed);
+        void setThreadMoving() { // Движение астероида
+            moving = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        while (imageView.getY() - radius < height) {
+                            imageView.setY(imageView.getY() + speed);
+                            sleep(time);
+                        }
+                        asteroids.remove(asteroid);
+                        moving.interrupt();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    super.run();
+                }
+            };
         }
+
     }
 
-    void setGameThread() {
+    void setGameThread() { // Игра
         gameThread = new Thread() {
+            int count = 0;
             @Override
             public void run() {
                 try {
                     Asteroid a = new Asteroid();
-                    a.setParam();
-                    //asteroids.add(a);
-                    //update();
+                    a.setThreadMoving();
+                    a.moving.start();
                     sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -137,7 +155,11 @@ public class MainActivity extends AppCompatActivity {
         fighter.setLayoutParams(initialPosition);
         fighter.setOnTouchListener(onTouchListener());
 
-        
+        setContentView(R.layout.activity_main);
+        GameView gameView = new GameView(this, this);
+        gameView.setDisplayMetrics(this);
+        gameView.setGameThread();
+        gameView.gameThread.start();
     }
     //  Внезапный выход из игры
     @Override
