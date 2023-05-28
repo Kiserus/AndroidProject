@@ -14,9 +14,4 @@
         android:layout_height="70dp"
         app:srcCompat="@drawable/bluefighter" />
 
-    <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-    </FrameLayout>
-
 </RelativeLayout>

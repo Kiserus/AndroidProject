@@ -13,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.Insets;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -43,7 +44,6 @@ class GameView {
     DisplayMetrics displayMetrics;
     int width;
     int height;
-    Thread gameThread;
 
     GameView(Context current, Activity activity) {
         this.context = current;
@@ -58,8 +58,7 @@ class GameView {
 
     ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
 
-    class Asteroid {
-        Asteroid asteroid;
+    public class Asteroid {
         int radius;
         int x;
         int y;
@@ -68,9 +67,8 @@ class GameView {
         ImageView imageView;
         RelativeLayout relativeLayout;
         RelativeLayout.LayoutParams relativeLayoutParams;
-        Thread moving;
 
-        Asteroid() { // add
+        Asteroid() {
             Random random = new Random();
             this.radius = random.nextInt(1000) + 100;
             this.x = random.nextInt(width);
@@ -88,54 +86,80 @@ class GameView {
             relativeLayoutParams.width = this.radius;
             relativeLayoutParams.height = this.radius;
 
-            imageView.setLayoutParams(relativeLayoutParams); // где-то тут ошибка
-            relativeLayout.addView(imageView);
+            imageView.setLayoutParams(relativeLayoutParams);
         }
 
-        void setThreadMoving() { // Движение астероида
-            moving = new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        while (imageView.getY() - radius < height) {
-                            imageView.setY(imageView.getY() + speed);
-                            sleep(time);
-                        }
-                        asteroids.remove(asteroid);
-                        moving.interrupt();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    super.run();
-                }
-            };
-        }
-
-    }
-
-    void setGameThread() { // Игра
-        gameThread = new Thread() {
-            int count = 0;
+        Thread moving = new Thread() {
             @Override
             public void run() {
                 try {
-                    Asteroid a = new Asteroid();
-                    a.setThreadMoving();
-                    a.moving.start();
-                    sleep(1000);
+                    while (imageView.getY() - radius < height) {
+                        imageView.setY(imageView.getY() + speed);
+                        sleep(time);
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 super.run();
             }
         };
+    } // конец класса Asteroid
+
+    boolean planeIsAlive = true;
+
+    class Test extends AsyncTask<Void, Asteroid, Void> { // создаём новые астероиды в UI
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
+
+        @Override
+        protected void onProgressUpdate(Asteroid... asteroids) {
+            RelativeLayout relativeLayout = activity.findViewById(R.id.main);
+            relativeLayout.addView(asteroids[0].imageView);
+            asteroids[0].moving.start();
+            super.onProgressUpdate();
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            for (int i = 0; i < 2; ++i) {
+                publishProgress(new Asteroid());
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
     }
+
+    Test test;
+
+    Thread gameThread = new Thread() {
+        @Override
+        public void run() {
+            try {
+                test = new Test();
+                test.execute();
+                sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 }
 
 
 public class MainActivity extends AppCompatActivity {
 
-    boolean planeIsAlive = true;
     private ViewGroup mainLayout;
 
     @Override
@@ -143,29 +167,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Window w = getWindow();
-        w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); // фиксируем ориентацию экрана
         mainLayout = (RelativeLayout) findViewById(R.id.main);
         GameView game = new GameView(this, this);
+        game.setDisplayMetrics(this); // устанавливаем значения переменным
         ImageView fighter = findViewById(R.id.fighter);
         //  устанавливаем начальное положение
-        RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        initialPosition.leftMargin = (mainLayout.getWidth() / 2 - fighter.getWidth() / 2);
-        initialPosition.topMargin = (int)(mainLayout.getHeight() * 0.9);
-        fighter.setLayoutParams(initialPosition);
+        RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(fighter.getLayoutParams());
+        initialPosition.leftMargin = (game.width / 2 - fighter.getWidth() / 2);
+        initialPosition.topMargin = (int) (game.height * 0.9);
+        fighter.setLayoutParams(initialPosition); // устанавливаем начальное положение корабля
         fighter.setOnTouchListener(onTouchListener());
-
-        setContentView(R.layout.activity_main);
-        GameView gameView = new GameView(this, this);
-        gameView.setDisplayMetrics(this);
-        gameView.setGameThread();
-        gameView.gameThread.start();
-    }
-    //  Внезапный выход из игры
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        planeIsAlive = false;
+        //game.setThreadSpaceship(fighter); // осуществление движение корабля
+         // устанавливаем поток игры
+        game.gameThread.start(); // Запуск игры
     }
 
     //  Управление
@@ -190,9 +205,9 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case MotionEvent.ACTION_MOVE:
                         if (x - xDelta + view.getWidth() <= mainLayout.getWidth() // исключаем случай выхода за границы экрана изображения
-                            && y - yDelta + view.getHeight() <= mainLayout.getHeight()
-                            && x - xDelta >= 0
-                            && y - yDelta >= 0) {
+                                && y - yDelta + view.getHeight() <= mainLayout.getHeight()
+                                && x - xDelta >= 0
+                                && y - yDelta >= 0) {
                             RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
                             layoutParams.leftMargin = x - xDelta;
                             layoutParams.topMargin = y - yDelta;
