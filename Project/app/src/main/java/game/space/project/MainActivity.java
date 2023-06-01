@@ -1,138 +1,103 @@
 package game.space.project;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Insets;
-import android.graphics.Paint;
-import android.graphics.Point;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.Display;
 import android.view.MotionEvent;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowManager;
-import android.view.WindowMetrics;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.Random;
 
 class GameView {
     Activity activity;
     Context context;
-    DisplayMetrics displayMetrics;
     int width;
     int height;
+    RelativeLayout mainLayout;
 
-    GameView(Context current, Activity activity) {
-        this.context = current;
+    GameView(Context context, Activity activity) {
+        this.context = context;
         this.activity = activity;
-    }
-
-    void setDisplayMetrics(Context context) {
-        displayMetrics = context.getResources().getDisplayMetrics();
+        this.mainLayout = activity.findViewById(R.id.main);
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
         width = displayMetrics.widthPixels;
         height = displayMetrics.heightPixels;
     }
 
-    ArrayList<Asteroid> asteroids = new ArrayList<Asteroid>();
-
     public class Asteroid {
-        int radius;
-        int x;
-        int y;
-        int speed; // юзаем класс вместо ImageView из-за скорости (у каждого индивидуальная)
-        int time;
+        int diametr;
         ImageView imageView;
         RelativeLayout relativeLayout;
         RelativeLayout.LayoutParams relativeLayoutParams;
 
         Asteroid() {
             Random random = new Random();
-            this.radius = random.nextInt(1000) + 100;
-            this.x = random.nextInt(width);
-            this.y = radius;
-            this.speed = 1;
-            this.time = 10;
+            this.diametr = random.nextInt(1000) + 100;
 
             imageView = new ImageView(context);
             imageView.setImageResource(R.drawable.asteroid_common);
             relativeLayout = (RelativeLayout) activity.findViewById(R.id.main);
-            relativeLayoutParams = new RelativeLayout.LayoutParams(radius, radius);
-
-            relativeLayoutParams.leftMargin = this.x;
-            relativeLayoutParams.topMargin = this.y;
-            relativeLayoutParams.width = this.radius;
-            relativeLayoutParams.height = this.radius;
+            relativeLayoutParams = new RelativeLayout.LayoutParams(diametr, diametr);
 
             imageView.setLayoutParams(relativeLayoutParams);
+            imageView.setY(-diametr);
+            imageView.setX(random.nextInt(width + 2 * diametr) - diametr);
         }
-
-        Thread moving = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    while (imageView.getY() - radius < height) {
-                        imageView.setY(imageView.getY() + speed);
-                        sleep(time);
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                super.run();
-            }
-        };
     } // конец класса Asteroid
 
     boolean planeIsAlive = true;
 
-    class Test extends AsyncTask<Void, Asteroid, Void> { // создаём новые астероиды в UI
+    class CreateAsteroids extends AsyncTask<Void, Asteroid, Void> { // создаём новые астероиды в UI
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
+        ArrayList<Asteroid> asteroidArrayList = new ArrayList<Asteroid>();
 
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-        }
+        Thread asteroidMovement = new Thread() {
+            @Override
+            public void run() {
+                while (planeIsAlive) {
+                    for (int i = 0; i < asteroidArrayList.size(); ++i) {
+                        if (asteroidArrayList.get(i).imageView.getY() + asteroidArrayList.get(i).diametr < height) {
+                            asteroidArrayList.get(i).imageView.setY(asteroidArrayList.get(i).imageView.getY() + 1);
+                        } else {
+                            // удаление imageView
+                            asteroidArrayList.get(i).imageView.setImageDrawable(null);
+                            asteroidArrayList.remove(i);
+                            i--;
+                        }
+                    }
+                    try {
+                        sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                super.run();
+            }
+        };
 
         @Override
         protected void onProgressUpdate(Asteroid... asteroids) {
-            RelativeLayout relativeLayout = activity.findViewById(R.id.main);
-            relativeLayout.addView(asteroids[0].imageView);
-            asteroids[0].moving.start();
+            mainLayout.addView(asteroids[0].imageView); // добавляем в UI изображение
             super.onProgressUpdate();
         }
 
         @Override
         protected Void doInBackground(Void... params) {
-            for (int i = 0; i < 2; ++i) {
-                publishProgress(new Asteroid());
+            asteroidMovement.start();
+            while (planeIsAlive) {
+                Asteroid asteroid = new Asteroid();
+                asteroidArrayList.add(asteroid);
+                publishProgress(asteroid);
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(3000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -141,20 +106,6 @@ class GameView {
         }
     }
 
-    Test test;
-
-    Thread gameThread = new Thread() {
-        @Override
-        public void run() {
-            try {
-                test = new Test();
-                test.execute();
-                sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    };
 }
 
 
@@ -170,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); // фиксируем ориентацию экрана
         mainLayout = (RelativeLayout) findViewById(R.id.main);
         GameView game = new GameView(this, this);
-        game.setDisplayMetrics(this); // устанавливаем значения переменным
         ImageView fighter = findViewById(R.id.fighter);
         //  устанавливаем начальное положение
         RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(fighter.getLayoutParams());
@@ -179,11 +129,17 @@ public class MainActivity extends AppCompatActivity {
         fighter.setLayoutParams(initialPosition); // устанавливаем начальное положение корабля
         fighter.setOnTouchListener(onTouchListener());
         //game.setThreadSpaceship(fighter); // осуществление движение корабля
-         // устанавливаем поток игры
-        game.gameThread.start(); // Запуск игры
+        GameView.CreateAsteroids asteroidTask = game.new CreateAsteroids();
+        asteroidTask.execute();
     }
 
-    //  Управление
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+    }
+
+    //  Управление кораблём
 
     private int xDelta;
     private int yDelta;
