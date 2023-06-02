@@ -35,77 +35,135 @@ class GameView {
     public class Asteroid {
         int diametr;
         ImageView imageView;
-        RelativeLayout relativeLayout;
-        RelativeLayout.LayoutParams relativeLayoutParams;
 
         Asteroid() {
             Random random = new Random();
-            this.diametr = random.nextInt(1000) + 100;
+            this.diametr = random.nextInt(800) + 100;
 
             imageView = new ImageView(context);
             imageView.setImageResource(R.drawable.asteroid_common);
-            relativeLayout = (RelativeLayout) activity.findViewById(R.id.main);
-            relativeLayoutParams = new RelativeLayout.LayoutParams(diametr, diametr);
-
+            RelativeLayout.LayoutParams relativeLayoutParams = new RelativeLayout.LayoutParams(diametr, diametr);
             imageView.setLayoutParams(relativeLayoutParams);
             imageView.setY(-diametr);
             imageView.setX(random.nextInt(width + 2 * diametr) - diametr);
         }
     } // конец класса Asteroid
 
-    boolean planeIsAlive = true;
+    boolean spaceshipIsAlive = true;
 
-    class CreateAsteroids extends AsyncTask<Void, Asteroid, Void> { // создаём новые астероиды в UI
+    class Spaceship {
+        ImageView spaceshipImageView;
 
-        ArrayList<Asteroid> asteroidArrayList = new ArrayList<Asteroid>();
+        Spaceship(ImageView imageView) {
+            spaceshipImageView = imageView;
+        }
 
-        Thread asteroidMovement = new Thread() {
-            @Override
-            public void run() {
-                while (planeIsAlive) {
-                    for (int i = 0; i < asteroidArrayList.size(); ++i) {
-                        if (asteroidArrayList.get(i).imageView.getY() + asteroidArrayList.get(i).diametr < height) {
-                            asteroidArrayList.get(i).imageView.setY(asteroidArrayList.get(i).imageView.getY() + 1);
-                        } else {
-                            // удаление imageView
-                            asteroidArrayList.get(i).imageView.setImageDrawable(null);
-                            asteroidArrayList.remove(i);
-                            i--;
+        class Bullet {
+            int bulletDiametr = 20;
+            ImageView bulletImageView;
+
+            Bullet() {
+                bulletImageView = new ImageView(context);
+                bulletImageView.setImageResource(R.drawable.bullet);
+                RelativeLayout.LayoutParams bulletLayoutParams = new RelativeLayout.LayoutParams(bulletDiametr, bulletDiametr);
+                bulletImageView.setLayoutParams(bulletLayoutParams);
+                bulletImageView.setX(spaceshipImageView.getX() + spaceshipImageView.getWidth() / 2 - bulletDiametr / 2);
+                bulletImageView.setY(spaceshipImageView.getY());
+            }
+        }
+
+        ArrayList<Bullet> bulletsArrayList = new ArrayList<>(); // хранит пули
+        ArrayList<Asteroid> asteroidArrayList = new ArrayList<>(); // хранит астероиды
+
+        class GameTask extends AsyncTask<Void, ImageView, Void> { // создаём новые пули в UI
+
+            ArrayList<Integer> bulletsDelatelist = new ArrayList<Integer>(); // хранит индексы пуль, которые нужно удалить
+            ArrayList<Integer> delateIndex = new ArrayList<>(); // хранит индексы астероидов, которые нужно удалить
+
+            Thread asteroidMovement = new Thread() {
+                @Override
+                public void run() {
+                    while (spaceshipIsAlive) {
+                        for (int i = 0; i < asteroidArrayList.size(); ++i) {
+                            if (asteroidArrayList.get(i).imageView.getY() - asteroidArrayList.get(i).diametr < height) {
+                                asteroidArrayList.get(i).imageView.setY(asteroidArrayList.get(i).imageView.getY() + 1);
+                            } else {
+                                // записываем индекс удаляемого астероида
+                                delateIndex.add(i);
+                            }
+                        }
+                        try {
+                            sleep(3);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
                     }
+                    super.run();
+                }
+            };
+
+            Thread bulletMovement = new Thread() {
+                @Override
+                public void run() {
+                    while (spaceshipIsAlive) {
+                        for (int i = 0; i < bulletsArrayList.size(); ++i) {
+                            if (bulletsArrayList.get(i).bulletImageView.getY() + bulletsArrayList.get(i).bulletDiametr > 0) {
+                                bulletsArrayList.get(i).bulletImageView.setY(bulletsArrayList.get(i).bulletImageView.getY() - 1);
+                            } else {
+                                // записываем индекс удаляемой пули
+                                bulletsDelatelist.add(i);
+                            }
+                        }
+                        try {
+                            sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    super.run();
+                }
+            };
+
+            @Override
+            protected void onProgressUpdate(ImageView... images) {
+                mainLayout.addView(images[0]); // добавляем в UI изображение
+
+                while (!bulletsDelatelist.isEmpty()) { // удаляем вышедшие за экран пули
+                    mainLayout.removeView(bulletsArrayList.get(bulletsDelatelist.get(0)).bulletImageView);
+                    bulletsArrayList.remove(bulletsDelatelist.get(0));
+                    bulletsDelatelist.remove(0);
+                }
+                while (!delateIndex.isEmpty()) { // удаляем вышедшие за экран астероиды
+                    mainLayout.removeView(asteroidArrayList.get(delateIndex.get(0)).imageView);
+                    asteroidArrayList.remove(delateIndex.get(0));
+                    delateIndex.remove(0);
+                }
+                super.onProgressUpdate();
+            }
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                bulletMovement.start();
+                asteroidMovement.start();
+                while (spaceshipIsAlive) {
+                    Bullet bullet = new Bullet();
+                    bulletsArrayList.add(bullet);
+                    publishProgress(bullet.bulletImageView); // запрос на добавление
+                    if (new Random().nextInt(10) + 1 <= 2) {
+                        Asteroid asteroid = new Asteroid();
+                        asteroidArrayList.add(asteroid);
+                        publishProgress(asteroid.imageView); // запрос на добавление
+                    }
                     try {
-                        sleep(10);
+                        Thread.sleep(200);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-                super.run();
+                return null;
             }
-        };
-
-        @Override
-        protected void onProgressUpdate(Asteroid... asteroids) {
-            mainLayout.addView(asteroids[0].imageView); // добавляем в UI изображение
-            super.onProgressUpdate();
-        }
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            asteroidMovement.start();
-            while (planeIsAlive) {
-                Asteroid asteroid = new Asteroid();
-                asteroidArrayList.add(asteroid);
-                publishProgress(asteroid);
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            return null;
-        }
+        } // конец класса Spaceship
     }
-
 }
 
 
@@ -121,22 +179,23 @@ public class MainActivity extends AppCompatActivity {
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); // фиксируем ориентацию экрана
         mainLayout = (RelativeLayout) findViewById(R.id.main);
         GameView game = new GameView(this, this);
-        ImageView fighter = findViewById(R.id.fighter);
+        ImageView SpaceshipImageView = findViewById(R.id.fighter);
         //  устанавливаем начальное положение
-        RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(fighter.getLayoutParams());
-        initialPosition.leftMargin = (game.width / 2 - fighter.getWidth() / 2);
+        RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(SpaceshipImageView.getLayoutParams());
+        initialPosition.leftMargin = (game.width / 2 - SpaceshipImageView.getWidth() / 2);
         initialPosition.topMargin = (int) (game.height * 0.9);
-        fighter.setLayoutParams(initialPosition); // устанавливаем начальное положение корабля
-        fighter.setOnTouchListener(onTouchListener());
-        //game.setThreadSpaceship(fighter); // осуществление движение корабля
-        GameView.CreateAsteroids asteroidTask = game.new CreateAsteroids();
-        asteroidTask.execute();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
+        SpaceshipImageView.setLayoutParams(initialPosition); // устанавливаем начальное положение корабля
+        SpaceshipImageView.setOnTouchListener(onTouchListener());
+        Thread gameThread = new Thread() {
+            @Override
+            public void run() {
+                GameView.Spaceship spaceship = game.new Spaceship(SpaceshipImageView);
+                GameView.Spaceship.GameTask gameTask = spaceship.new GameTask();
+                gameTask.execute();
+                super.run();
+            }
+        };
+        gameThread.start();
     }
 
     //  Управление кораблём
