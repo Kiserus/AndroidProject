@@ -14,7 +14,10 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 class GameView {
     Activity activity;
@@ -78,18 +81,19 @@ class GameView {
         class GameTask extends AsyncTask<Void, ImageView, Void> { // создаём новые пули в UI
 
             ArrayList<Integer> bulletsDelatelist = new ArrayList<Integer>(); // хранит индексы пуль, которые нужно удалить
-            ArrayList<Integer> delateIndex = new ArrayList<>(); // хранит индексы астероидов, которые нужно удалить
+            Set <Integer> setDelateIndex = new HashSet<>(); // хранит индексы астероидов, которые нужно удалить
+                                                            // если брать
 
             Thread asteroidMovement = new Thread() {
                 @Override
                 public void run() {
                     while (spaceshipIsAlive) {
                         for (int i = 0; i < asteroidArrayList.size(); ++i) {
-                            if (asteroidArrayList.get(i).imageView.getY() - asteroidArrayList.get(i).diametr < height) {
+                            if (asteroidArrayList.get(i).imageView.getY() + asteroidArrayList.get(i).diametr < height) {
                                 asteroidArrayList.get(i).imageView.setY(asteroidArrayList.get(i).imageView.getY() + 1);
                             } else {
                                 // записываем индекс удаляемого астероида
-                                delateIndex.add(i);
+                                setDelateIndex.add(i);
                             }
                         }
                         try {
@@ -107,7 +111,7 @@ class GameView {
                 public void run() {
                     while (spaceshipIsAlive) {
                         for (int i = 0; i < bulletsArrayList.size(); ++i) {
-                            if (bulletsArrayList.get(i).bulletImageView.getY() + bulletsArrayList.get(i).bulletDiametr > 0) {
+                            if (bulletsArrayList.get(i).bulletImageView.getY() - bulletsArrayList.get(i).bulletDiametr > 0) {
                                 bulletsArrayList.get(i).bulletImageView.setY(bulletsArrayList.get(i).bulletImageView.getY() - 1);
                             } else {
                                 // записываем индекс удаляемой пули
@@ -128,27 +132,31 @@ class GameView {
             protected void onProgressUpdate(ImageView... images) {
                 mainLayout.addView(images[0]); // добавляем в UI изображение
 
-                while (!bulletsDelatelist.isEmpty()) { // удаляем вышедшие за экран пули
+                /*while (!bulletsDelatelist.isEmpty()) { // удаляем вышедшие за экран пули
                     mainLayout.removeView(bulletsArrayList.get(bulletsDelatelist.get(0)).bulletImageView);
                     bulletsArrayList.remove(bulletsDelatelist.get(0));
                     bulletsDelatelist.remove(0);
-                }
-                while (!delateIndex.isEmpty()) { // удаляем вышедшие за экран астероиды
-                    mainLayout.removeView(asteroidArrayList.get(delateIndex.get(0)).imageView);
-                    asteroidArrayList.remove(delateIndex.get(0));
-                    delateIndex.remove(0);
+                }*/
+
+                ArrayList<Integer> buffer = new ArrayList<>(setDelateIndex);
+                Collections.reverse(buffer);
+                while (!buffer.isEmpty()) { // удаляем вышедшие за экран астероиды
+                    mainLayout.removeView(asteroidArrayList.get(buffer.get(0)).imageView);
+                    asteroidArrayList.remove(buffer.get(0));
+                    buffer.remove(0);
                 }
                 super.onProgressUpdate();
             }
 
             @Override
             protected Void doInBackground(Void... params) {
-                bulletMovement.start();
+                //bulletMovement.start();
                 asteroidMovement.start();
                 while (spaceshipIsAlive) {
-                    Bullet bullet = new Bullet();
+                    /*Bullet bullet = new Bullet();
                     bulletsArrayList.add(bullet);
                     publishProgress(bullet.bulletImageView); // запрос на добавление
+                     */
                     if (new Random().nextInt(10) + 1 <= 2) {
                         Asteroid asteroid = new Asteroid();
                         asteroidArrayList.add(asteroid);
