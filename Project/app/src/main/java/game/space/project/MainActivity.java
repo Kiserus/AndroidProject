@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Window w = getWindow();
+        String TAG = "Main";
         w.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); // фиксируем ориентацию экрана
         mainLayout = (RelativeLayout) findViewById(R.id.main);
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
@@ -42,14 +43,15 @@ public class MainActivity extends AppCompatActivity {
         height = displayMetrics.heightPixels;
         context = mainLayout.getContext();
 
-        /*SpaceshipImageView = findViewById(R.id.fighter);
+        SpaceshipImageView = findViewById(R.id.fighter);
         //  устанавливаем начальное положение
         RelativeLayout.LayoutParams initialPosition = new RelativeLayout.LayoutParams(SpaceshipImageView.getLayoutParams());
         initialPosition.leftMargin = (width / 2 - 70);
         initialPosition.topMargin = (int) (height * 0.9);
         SpaceshipImageView.setLayoutParams(initialPosition); // устанавливаем начальное положение корабля
-        SpaceshipImageView.setOnTouchListener(onTouchListener());*/
+        SpaceshipImageView.setOnTouchListener(onTouchListener());
         GameThread gameThread = new GameThread();
+        Log.i(TAG, "okMain");
         gameThread.execute();
     }
 
@@ -66,16 +68,12 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 while (spaceshipIsAlive) {
                     for (int i = 0; i < bulletsArrayList.size(); ++i) {
-                        if (bulletsArrayList.get(i).getY() - bulletsArrayList.get(i).getWidth() > 0) {
-                            bulletsArrayList.get(i).setY(bulletsArrayList.get(i).getY() - 1);
-                        } else {
-                            // записываем индекс удаляемой пули
-                            mainLayout.removeView(bulletsArrayList.get(i));
-                            //bulletsDelatelist.add(i);
+                        if (bulletsArrayList.get(i).getY() + bulletsArrayList.get(i).getWidth() > 0) {
+                            bulletsArrayList.get(i).setY(bulletsArrayList.get(i).getY() - 3);
                         }
                     }
                     try {
-                        sleep(1);
+                        sleep(10);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -90,10 +88,7 @@ public class MainActivity extends AppCompatActivity {
                 while (spaceshipIsAlive) {
                     for (int i = 0; i < asteroidArrayList.size(); ++i) {
                         if (asteroidArrayList.get(i).getY() - asteroidArrayList.get(i).getWidth() / 2 < height) {
-                            asteroidArrayList.get(i).setY(asteroidArrayList.get(i).getY() + 1);
-                        } else {
-                            // записываем индекс удаляемого астероида
-                            setDelateAsteroids.add(i);
+                            asteroidArrayList.get(i).setY(asteroidArrayList.get(i).getY() + 3);
                         }
                     }
                     try {
@@ -109,45 +104,35 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            asteroidMovement.start();
+            bulletMovement.start();
         }
-
-        boolean isAsteroid = true;
 
         @Override
         protected void onProgressUpdate(ImageView... values) {
             super.onProgressUpdate(values);
             mainLayout.addView(values[0]);
 
-            ArrayList<Integer> arrayDelateBullets = new ArrayList<>(bulletsDelatelist);
-            Collections.reverse(arrayDelateBullets);
-            while (!arrayDelateBullets.isEmpty()) { // удаляем вышедшие за экран астероиды
-                mainLayout.removeView(bulletsArrayList.get(arrayDelateBullets.get(0)));
-                bulletsArrayList.remove(arrayDelateBullets.get(0));
-                arrayDelateBullets.remove(0);
+            for (int i = 0; i < asteroidArrayList.size(); ++i) {
+                if (asteroidArrayList.get(i).getY() - asteroidArrayList.get(i).getWidth() / 2 >= height) {
+                    mainLayout.removeView(asteroidArrayList.get(i));
+                    asteroidArrayList.remove(i);
+                }
             }
 
-            try {
-                asteroidMovement.sleep(5);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            for (int i = 0; i < bulletsArrayList.size(); ++i) {
+                if (bulletsArrayList.get(i).getY() + bulletsArrayList.get(i).getWidth() <= 0) {
+                    mainLayout.removeView(bulletsArrayList.get(i));
+                    bulletsArrayList.remove(i);
+                }
             }
 
-            ArrayList<Integer> arrayDelateAsteroids = new ArrayList<>(setDelateAsteroids);
-            Collections.reverse(arrayDelateAsteroids);
-            while (!arrayDelateAsteroids.isEmpty()) { // удаляем вышедшие за экран астероиды
-                mainLayout.removeView(asteroidArrayList.get(arrayDelateAsteroids.get(0)));
-                asteroidArrayList.remove(arrayDelateAsteroids.get(0));
-                arrayDelateAsteroids.remove(0);
-            }
-
-
-            /*for (int i = 0; i < asteroidArrayList.size(); ++i) {
+            for (int i = 0; i < asteroidArrayList.size(); ++i) {
                 for (int j = 0; j < bulletsArrayList.size(); ++j) {
                     ImageView a = asteroidArrayList.get(i);
                     ImageView b = bulletsArrayList.get(j);
                     if (Math.sqrt(Math.pow(a.getY() + a.getWidth() / 2 - (b.getY() + b.getWidth() / 2), 2) +
                             Math.pow(a.getX() + a.getWidth() / 2 - (b.getX() + b.getWidth() / 2), 2)) <= a.getWidth() + b.getWidth()) {
-                        Log.d(TAG, "a.width : " + a.getWidth() + " " + b.getWidth());
                         if (bulletMovement.isAlive())
                             bulletMovement.interrupt();
                         if (asteroidMovement.isAlive())
@@ -162,14 +147,32 @@ public class MainActivity extends AppCompatActivity {
                         //j--;
                     }
                 }
-            }*/
+            }
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            asteroidMovement.start();
             while (spaceshipIsAlive) {
                 Random random = new Random();
+                int n = 5;
+                for (int i = 0; i < n; ++i) {
+                    ImageView bullet = new ImageView(context);
+                    int diametr = 20;
+                    RelativeLayout.LayoutParams asteroidLayoutParams = new RelativeLayout.LayoutParams(diametr, diametr);
+                    bullet.setLayoutParams(asteroidLayoutParams);
+                    bullet.setImageResource(R.drawable.bullet);
+                    bulletsArrayList.add(bullet);
+                    bullet.setY(SpaceshipImageView.getY());
+                    bullet.setX(SpaceshipImageView.getX() + SpaceshipImageView.getWidth() / 2 - diametr / 2);
+                    publishProgress(bullet);
+                    if (i != n - 1) {
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
                 ImageView asteroid = new ImageView(context);
                 int diametr = random.nextInt(800) + 100;
                 RelativeLayout.LayoutParams asteroidLayoutParams = new RelativeLayout.LayoutParams(diametr, diametr);
@@ -180,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
                 asteroid.setX(random.nextInt(width + 2 * diametr) - diametr);
                 publishProgress(asteroid);
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(200);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
